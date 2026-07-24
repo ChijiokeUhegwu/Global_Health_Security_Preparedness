@@ -1,0 +1,298 @@
+---
+title: "SurvTB"
+subtitle: "A cross-national gap analysis project"
+format:
+  dashboard:
+    orientation: rows
+    theme: cosmo
+---
+
+```{python}
+#| echo: false
+#| output: false
+
+# import packages
+from itables import show
+import plotly.express as px
+import pandas as pd
+import numpy as np
+
+from functools import reduce 
+from scipy.stats import zscore
+
+import plotly.express as px
+import plotly.graph_objects as go
+
+# import data
+physicians_per_1000 = pd.read_csv("data/sh_med_phys_zs.csv")
+uhc_infectious_subindex = pd.read_csv("data/sh_uhc_sci_id.csv")
+spi_pillar5 = pd.read_csv("data/iq_spi_pil5.csv")
+spi_overall = pd.read_csv("data/iq_spi_ovrl.csv")
+tb_incidence_per_100k = pd.read_csv(
+    "data/all_forms_of_tb_incidence_per_100000_estimated.csv"
+)
+health_expenditure_gdp = pd.read_csv("data/sh_xpd_chex_gd_zs.csv")
+```
+
+```{python}
+# Create a reusable function to tidy the datasets
+def tidy_gapminder(df, value_name):
+
+    df = df.rename(columns={"name": "country", "geo": "country_code"})
+
+    id_cols = ["country_code", "country"]
+
+    year_cols = [c for c in df.columns if c.isdigit()]
+
+    tidy = df.melt(
+        id_vars=id_cols, value_vars=year_cols, var_name="year", value_name=value_name
+    )
+
+    tidy["year"] = tidy["year"].astype(int)
+
+    tidy[value_name] = pd.to_numeric(tidy[value_name], errors="coerce")
+
+    return tidy
+```
+
+
+```{python}
+# Tidy every dataset
+physicians = tidy_gapminder(
+    physicians_per_1000,
+    "physicians"
+)
+
+uhc = tidy_gapminder(
+    uhc_infectious_subindex,
+    "uhc"
+)
+
+spi = tidy_gapminder(
+    spi_overall,
+    "spi_overall"
+)
+
+pillar5 = tidy_gapminder(
+    spi_pillar5,
+    "spi_pillar5"
+)
+
+tb = tidy_gapminder(
+    tb_incidence_per_100k,
+    "tb_incidence"
+)
+
+health = tidy_gapminder(
+    health_expenditure_gdp,
+    "health_expenditure"
+)
+```
+
+
+```{python}
+# Filter to study years (Year 2000 and above)
+datasets = [physicians, uhc, spi, pillar5, tb, health]
+
+for i in range(len(datasets)):
+    datasets[i] = datasets[i].query("year >= 2000")
+
+physicians, uhc, spi, pillar5, tb, health = datasets
+```
+
+```{python}
+# Merge datasets into one dataframe
+dfs = [
+    physicians,
+    uhc,
+    spi,
+    pillar5,
+    tb,
+    health
+]
+
+# Use the reduce function to merge every dataframe in the list above
+master = reduce(
+    lambda left,right:
+    pd.merge(
+        left,
+        right,
+        on=["country_code", "country","year"],
+        how="outer"
+    ),
+    dfs
+)
+
+# Since a full join was done, confirm missing values
+# master.isna().sum().sort_values(ascending=False)
+```
+
+
+```{python}
+# Considering the missing values associated with slowly changing indicators, use the "Most Recent Available Value" (MRAV) for them between 2020 and 2023. TB incidence, however, should remain strictly 2023 because it is the outcome variable and changes more meaningfully over time
+
+# TB incidence (2023 only)
+tb2023 = master.loc[
+    master["year"] == 2023, ["country_code", "country", "tb_incidence"]
+].drop_duplicates()
+
+
+# Function to get the most recent non-missing value
+def latest_value(df, value_col, start_year=2020, end_year=2023):
+
+    temp = (
+        df[df["year"].between(start_year, end_year)]
+        .sort_values("year", ascending=False)
+        .dropna(subset=[value_col])
+        .drop_duplicates("country")[["country", value_col]]
+    )
+
+    return temp
+
+
+# Apply function to the datasets
+physicians_latest = latest_value(master, "physicians")
+uhc_latest = latest_value(master, "uhc")
+spi_latest = latest_value(master, "spi_overall")
+pillar5_latest = latest_value(master, "spi_pillar5")
+health_latest = latest_value(master, "health_expenditure")
+
+# Merge the datasets
+analysis = reduce(
+    lambda left, right: pd.merge(left, right, on="country", how="left"),
+    [
+        tb2023,
+        physicians_latest,
+        uhc_latest,
+        spi_latest,
+        pillar5_latest,
+        health_latest,
+    ],
+)
+
+# calculate missing values
+analysis.isna().sum()
+
+# Remove countries without tb incidence. Since physicians and are core HSPI variables, drop rows with missing physicians
+analysis = analysis.dropna(
+    subset=["tb_incidence", "physicians", "spi_overall", "spi_pillar5"]
+)
+
+# Save cleaned dataset
+analysis.to_csv("data/analysis_dataset.csv", index=False)
+```
+
+
+```{python}
+# Top countries by TB burden
+top_tb_countries = analysis.nlargest(10, "tb_incidence")[["country", "tb_incidence"]]
+
+# Lowest physician density
+low_physician_den = analysis.nsmallest(10, "physicians")[["country", "physicians"]]
+
+# Correlation matrix
+corr = analysis[
+    [
+        "tb_incidence",
+        "physicians",
+        "uhc",
+        "spi_overall",
+        "spi_pillar5",
+        "health_expenditure",
+    ]
+].corr()
+
+# Correlation matrix heatmap
+fig = px.imshow(
+    corr,
+    text_auto=".2f",
+    color_continuous_scale="RdBu_r",
+    aspect="auto",
+    title="Correlation Matrix",
+)
+
+fig.show()
+```
+
+```{python}
+# TB incidence vs Physicians
+fig = px.scatter(
+    analysis,
+    x="physicians",
+    y="tb_incidence",
+    hover_name="country",
+    size="health_expenditure",
+    color="spi_overall",
+    title="TB Incidence vs Physician Density"
+)
+
+fig.update_layout(
+    xaxis_title="Physicians per 1,000",
+    yaxis_title="TB Incidence per 100,000"
+)
+
+fig.show()
+```
+
+
+```{python}
+# Prepare Health Security Preparedness Index (HSPI)
+
+# Select variables and use z-score normalization to compress extreme values
+variables = ["physicians", "uhc", "spi_overall", "spi_pillar5", "health_expenditure"]
+
+for v in variables:
+    analysis[f"{v}_z"] = zscore(analysis[v])
+
+# Select z-score variables for HSPI
+analysis["HSPI"] = analysis[
+    ["physicians_z", "uhc_z", "spi_overall_z", "spi_pillar5_z", "health_expenditure_z"]
+].mean(axis=1)
+
+# Convert raw z-scores to 0-100
+analysis["HSPI"] = (
+    100
+    * (analysis["HSPI"] - analysis["HSPI"].min())
+    / (analysis["HSPI"].max() - analysis["HSPI"].min())
+)
+
+# Categorize Preparedness level
+analysis["Preparedness Level"] = pd.qcut(
+    analysis["HSPI"], q=4, labels=["Low", "Moderate", "High", "Very High"]
+)
+```
+
+
+```{python}
+# Calculate average HSPI and tb incidence
+hspi_median = analysis["HSPI"].median()
+
+tb_median = analysis["tb_incidence"].median()
+
+
+# Create quadrants using hspi and tb_incidence averages
+def quadrant(row):
+
+    if row.HSPI < hspi_median and row.tb_incidence > tb_median:
+
+        return "Priority"
+
+    elif row.HSPI >= hspi_median and row.tb_incidence > tb_median:
+
+        return "High Burden"
+
+    elif row.HSPI < hspi_median and row.tb_incidence <= tb_median:
+
+        return "Emerging Risk"
+
+    else:
+
+        return "Resilient"
+
+
+# Create the quadrants for further analysis
+analysis["Quadrant"] = analysis.apply(quadrant, axis=1)
+
+# save dataset
+analysis.to_csv("data/preparedness_quadrants.csv", index=False)
+```
