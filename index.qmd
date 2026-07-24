@@ -158,7 +158,7 @@ pillar5_latest = latest_value(master, "spi_pillar5")
 health_latest = latest_value(master, "health_expenditure")
 
 # Merge the datasets
-analysis = reduce(
+analysis_full = reduce(
     lambda left, right: pd.merge(left, right, on="country", how="left"),
     [
         tb2023,
@@ -170,28 +170,20 @@ analysis = reduce(
     ],
 )
 
-# calculate missing values
-analysis.isna().sum()
-
-# Remove countries without tb incidence. Since physicians and are core HSPI variables, drop rows with missing physicians
-analysis = analysis.dropna(
-    subset=["tb_incidence", "physicians", "spi_overall", "spi_pillar5"]
-)
-
 # Save cleaned dataset
-analysis.to_csv("data/analysis_dataset.csv", index=False)
+analysis_full.to_csv("data/analysis_full.csv", index=False)
 ```
 
 
 ```{python}
 # Top countries by TB burden
-top_tb_countries = analysis.nlargest(10, "tb_incidence")[["country", "tb_incidence"]]
+top_tb_countries = analysis_full.nlargest(10, "tb_incidence")[["country", "tb_incidence"]]
 
 # Lowest physician density
-low_physician_den = analysis.nsmallest(10, "physicians")[["country", "physicians"]]
+low_physician_den = analysis_full.nsmallest(10, "physicians")[["country", "physicians"]]
 
 # Correlation matrix
-corr = analysis[
+corr = analysis_full[
     [
         "tb_incidence",
         "physicians",
@@ -217,18 +209,17 @@ fig.show()
 ```{python}
 # TB incidence vs Physicians
 fig = px.scatter(
-    analysis,
+    analysis_full,
     x="physicians",
     y="tb_incidence",
     hover_name="country",
     size="health_expenditure",
     color="spi_overall",
-    title="TB Incidence vs Physician Density"
+    title="TB Incidence vs Physician Density",
 )
 
 fig.update_layout(
-    xaxis_title="Physicians per 1,000",
-    yaxis_title="TB Incidence per 100,000"
+    xaxis_title="Physicians per 1,000", yaxis_title="TB Incidence per 100,000"
 )
 
 fig.show()
@@ -237,6 +228,14 @@ fig.show()
 
 ```{python}
 # Prepare Health Security Preparedness Index (HSPI)
+
+# calculate missing values
+analysis_full.isna().sum()
+
+# Remove countries without tb incidence. Since physicians and spi are core HSPI variables, drop rows with missing physicians
+analysis = analysis_full.dropna(
+    subset=["tb_incidence", "physicians", "spi_overall", "spi_pillar5"]
+)
 
 # Select variables and use z-score normalization to compress extreme values
 variables = ["physicians", "uhc", "spi_overall", "spi_pillar5", "health_expenditure"]
@@ -294,5 +293,87 @@ def quadrant(row):
 analysis["Quadrant"] = analysis.apply(quadrant, axis=1)
 
 # save dataset
-analysis.to_csv("data/preparedness_quadrants.csv", index=False)
+analysis.to_csv("data/analysis_hspi.csv", index=False)
+```
+```{python}
+# KPI VALUES
+
+# Number of countries
+num_countries = analysis["country"].nunique()
+
+# Average HSPI
+avg_hspi = round(analysis["HSPI"].mean(), 1)
+
+# Average TB incidence
+avg_tb_incidence = round(analysis["tb_incidence"].mean(), 1)
+
+# Number of Priority countries
+priority_countries = analysis["Quadrant"].eq("Priority").sum()
+```
+
+
+```{python}
+# Choropleth map
+map_fig = px.choropleth(
+    analysis,
+    locations="country",
+    locationmode="country names",
+    color="HSPI",
+    hover_name="country",
+    hover_data={
+        "HSPI":":.1f",
+        "tb_incidence":":.1f",
+        "physicians":":.2f",
+        "uhc":":.1f"
+    },
+    color_continuous_scale="Viridis",
+    title="Global Health Security Preparedness Index"
+)
+map_fig.update_layout(
+    margin=dict(l=0,r=0,t=60,b=0)
+)
+
+map_fig.show()
+```
+
+# Overview
+
+## Row {height=25%}
+
+::: {.valuebox icon="globe" color="#2E86C1" title="Countries Analysed"}
+
+```{python}
+num_countries
+```
+
+:::
+
+::: {.valuebox icon="shield-check" color="#27AE60" title="Average HSPI"}
+
+```{python}
+avg_hspi
+```
+
+:::
+
+::: {.valuebox icon="activity" color="#E67E22" title="Average TB Incidence"}
+
+```{python}
+f"{avg_tb_incidence:.1f} per 100,000"
+```
+
+:::
+
+::: {.valuebox icon="exclamation-triangle-fill" color="#C0392B" title="Priority Countries"}
+
+```{python}
+priority_countries
+```
+
+:::
+
+## Row {height=75%}
+
+```{python}
+map_fig
 ```
