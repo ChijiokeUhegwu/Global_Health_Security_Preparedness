@@ -59,3 +59,51 @@ fig = px.scatter_matrix(
 fig.show()
 ```
 
+
+```{python}
+
+# TB incidence vs Physicians
+fig = px.scatter(
+    analysis,
+    x="physicians",
+    y="tb_incidence",
+    hover_name="country",
+    size="health_expenditure",
+    color="spi_overall",
+    title="TB Incidence vs Physician Density",
+)
+
+fig.update_layout(
+    xaxis_title="Physicians per 1,000", yaxis_title="TB Incidence per 100,000"
+)
+```
+
+
+```{python}
+# Top countries by TB burden
+top_tb_countries = analysis_full.nlargest(10, "tb_incidence")[["country", "tb_incidence"]]
+
+# Lowest physician density
+low_physician_den = analysis_full.nsmallest(10, "physicians")[["country", "physicians"]]
+
+# Correlation matrix
+corr = analysis_full[
+    [
+        "tb_incidence",
+        "physicians",
+        "uhc",
+        "spi_overall",
+        "spi_pillar5",
+        "health_expenditure",
+    ]
+].corr()
+
+# Correlation matrix heatmap
+fig = px.imshow(
+    corr,
+    text_auto=".2f",
+    color_continuous_scale="RdBu_r",
+    aspect="auto",
+    title="Correlation Matrix",
+)
+```

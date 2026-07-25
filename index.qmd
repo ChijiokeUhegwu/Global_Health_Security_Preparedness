@@ -1,6 +1,5 @@
 ---
-title: "SurvTB"
-subtitle: "A cross-national gap analysis project"
+title: "GHSP Dashboard"
 format:
   dashboard:
     orientation: rows
@@ -12,16 +11,17 @@ format:
 #| output: false
 
 # import packages
-from itables import show
+from itables import init_notebook_mode, show
+import itables.options as opt
+
 import plotly.express as px
 import pandas as pd
 import numpy as np
 
-from functools import reduce 
+from functools import reduce
 from scipy.stats import zscore
 
 import plotly.express as px
-import plotly.graph_objects as go
 
 # import data
 physicians_per_1000 = pd.read_csv("data/sh_med_phys_zs.csv")
@@ -174,63 +174,11 @@ analysis_full = reduce(
 analysis_full.to_csv("data/analysis_full.csv", index=False)
 ```
 
-
-```{python}
-# Top countries by TB burden
-top_tb_countries = analysis_full.nlargest(10, "tb_incidence")[["country", "tb_incidence"]]
-
-# Lowest physician density
-low_physician_den = analysis_full.nsmallest(10, "physicians")[["country", "physicians"]]
-
-# Correlation matrix
-corr = analysis_full[
-    [
-        "tb_incidence",
-        "physicians",
-        "uhc",
-        "spi_overall",
-        "spi_pillar5",
-        "health_expenditure",
-    ]
-].corr()
-
-# Correlation matrix heatmap
-fig = px.imshow(
-    corr,
-    text_auto=".2f",
-    color_continuous_scale="RdBu_r",
-    aspect="auto",
-    title="Correlation Matrix",
-)
-
-fig.show()
-```
-
-```{python}
-# TB incidence vs Physicians
-fig = px.scatter(
-    analysis_full,
-    x="physicians",
-    y="tb_incidence",
-    hover_name="country",
-    size="health_expenditure",
-    color="spi_overall",
-    title="TB Incidence vs Physician Density",
-)
-
-fig.update_layout(
-    xaxis_title="Physicians per 1,000", yaxis_title="TB Incidence per 100,000"
-)
-
-fig.show()
-```
-
-
 ```{python}
 # Prepare Health Security Preparedness Index (HSPI)
 
 # calculate missing values
-analysis_full.isna().sum()
+# analysis_full.isna().sum()
 
 # Remove countries without tb incidence. Since physicians and spi are core HSPI variables, drop rows with missing physicians
 analysis = analysis_full.dropna(
@@ -295,6 +243,7 @@ analysis["Quadrant"] = analysis.apply(quadrant, axis=1)
 # save dataset
 analysis.to_csv("data/analysis_hspi.csv", index=False)
 ```
+
 ```{python}
 # KPI VALUES
 
@@ -311,6 +260,59 @@ avg_tb_incidence = round(analysis["tb_incidence"].mean(), 1)
 priority_countries = analysis["Quadrant"].eq("Priority").sum()
 ```
 
+# Overview
+
+## Row {height=25%}
+
+```{python}
+#| content: valuebox
+#| title: "Countries Analysed"
+
+dict(
+    icon="globe",
+    color="#2E86C1",
+    # Cast to float or format as string to strip 'np.float64'
+    value=f"{int(num_countries)}"
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Average HSPI"
+
+dict(
+    icon="shield-check",
+    color="#27AE60",
+    # Cast to float or format as string to strip 'np.float64'
+    value=f"{float(avg_hspi):.1f}"
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Average TB Incidence (per 100k)"
+
+dict(
+    icon="activity",
+    color="#E67E22",
+    value=f"{float(avg_tb_incidence):.1f}"
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Priority Countries"
+
+dict(
+    icon="exclamation-triangle-fill",
+    color="#C0392B",
+    value=f"{int(priority_countries)}",
+)
+```
+
+## Row {height=75%}
+
+### Map Column {width="70%"}
 
 ```{python}
 # Choropleth map
@@ -318,62 +320,428 @@ map_fig = px.choropleth(
     analysis,
     locations="country",
     locationmode="country names",
-    color="HSPI",
+    color="Quadrant",
+    color_discrete_map={
+        "Priority": "#B22222",
+        "Emerging Risk": "#FF7F00",
+        "High Burden": "#E6AB02",
+        "Resilient": "#2E8B57",
+    },
     hover_name="country",
     hover_data={
-        "HSPI":":.1f",
-        "tb_incidence":":.1f",
-        "physicians":":.2f",
-        "uhc":":.1f"
+        "HSPI": ":.1f",
+        "tb_incidence": ":.1f",
+        "physicians": ":.2f",
+        "uhc": ":.1f",
+        "Quadrant": True,
     },
-    color_continuous_scale="Viridis",
-    title="Global Health Security Preparedness Index"
+    labels={
+        "Quadrant": "Preparedness Status",
+        "tb_incidence": "TB Incidence per 100k",
+        "uhc": "UHC",
+        "physicians": "Physicians per 1000",
+        "country": "Country",
+    },
+    title="Global Health Security Preparedness Index (2023)",
 )
 map_fig.update_layout(
-    margin=dict(l=0,r=0,t=60,b=0)
+    legend=dict(
+        orientation="h",
+        yanchor="top",
+        y=-0.05,
+        xanchor="center",
+        x=0.5,
+        title_text="",
+        entrywidth=80,
+        entrywidthmode="pixels",
+    ),
+    margin=dict(l=0, r=0, t=60, b=0),
+)
+```
+
+### Insight Column {width="30%"}
+
+::: {.callout-tip}
+
+## Executive Summary
+
+The Global Health Security Preparedness (GHSP) dashboard assessed national preparedness for infectious disease detection and response by integrating indicators of health workforce capacity, universal health coverage, statistical performance, data infrastructure, health expenditure, and tuberculosis incidence.
+
+The Health Security Preparedness Index (HSPI) highlighted substantial differences in preparedness across countries. While many countries demonstrated strong preparedness systems and relatively low TB burden, others combined limited preparedness with high disease burden, indicating potential vulnerabilities in surveillance and response capacity.
+
+The gap analysis provides a simple framework for identifying countries where strengthening health systems and surveillance infrastructure may have the greatest impact on health security.
+
+:::
+
+# Preparedness Capacity
+
+## Row 1 {height="50%"}
+
+### Top 15 HSPI Countries
+
+```{python}
+
+top15 = analysis.nlargest(15, "HSPI").sort_values("HSPI")
+
+fig_top = px.bar(
+    top15,
+    x="HSPI",
+    y="country",
+    orientation="h",
+    color="HSPI",
+    color_continuous_scale="Greens",
+    title="Top 15 Countries by HSPI",
+    hover_data={
+        "HSPI": ":.1f",
+        "tb_incidence": ":.1f",
+        "physicians": ":.2f",
+        "uhc": ":.1f",
+        "Quadrant": True,
+    },
+    labels={
+        "Quadrant": "Preparedness Status",
+        "tb_incidence": "TB Incidence per 100k",
+        "uhc": "UHC",
+        "physicians": "Physicians per 1000",
+        "country": "Country",
+    },
 )
 
-map_fig.show()
+fig_top.update_layout(height=450)
 ```
 
-# Overview
-
-## Row {height=25%}
-
-::: {.valuebox icon="globe" color="#2E86C1" title="Countries Analysed"}
+### Lowest 15 HSPI Countries
 
 ```{python}
-num_countries
+bottom15 = analysis.nsmallest(15, "HSPI").sort_values("HSPI", ascending=False)
+
+fig_bottom = px.bar(
+    bottom15,
+    x="HSPI",
+    y="country",
+    orientation="h",
+    color="HSPI",
+    color_continuous_scale="Reds",
+    title="Lowest 15 Countries by HSPI",
+)
+
+fig_bottom.update_layout(height=450)
+
 ```
+
+## Row 2
+
+### Column 1
+```{python}
+fig_scatter = px.scatter(
+    analysis,
+    x="health_expenditure",
+    y="HSPI",
+    size="physicians",
+    color="spi_overall",
+    hover_name="country",
+    hover_data=["tb_incidence", "uhc"],
+    labels={
+        "health_expenditure": "Health expenditure (% GDP)",
+        "tb_incidence": "TB Incidence per 100k",
+        "uhc": "UHC",
+        "spi_overall": "SPI Overall",
+        "physicians": "Physicians per 1000",
+    },
+    title="Health Expenditure and National Preparedness",
+)
+
+fig_scatter.update_layout(height=500)
+```
+
+### Column 2
+
+::: {.callout-note}
+
+## Interpretation
+
+The Health Security Preparedness Index (HSPI) combines five complementary dimensions of preparedness:
+
+- Physician density
+- UHC infectious disease service coverage
+- Statistical Performance Indicator (Overall)
+- Statistical Performance Indicator – Pillar 5 (Data Infrastructure)
+- Current health expenditure (% of GDP)
+
+Countries with higher HSPI values generally combine stronger health systems, greater investment in health, and more developed statistical infrastructure. Lower HSPI scores highlight potential gaps in preparedness that may affect the timely detection and response to infectious disease outbreaks.
 
 :::
 
-::: {.valuebox icon="shield-check" color="#27AE60" title="Average HSPI"}
+# Infectious Disease Burden
+
+## Row 1
+
+### Column 1
+```{python}
+fig_tb_map = px.choropleth(
+    analysis,
+    locations="country",
+    locationmode="country names",
+    color="tb_incidence",
+    hover_name="country",
+    hover_data={
+        "tb_incidence": ":.1f",
+        "HSPI": ":.1f",
+        "physicians": ":.2f",
+        "uhc": ":.1f",
+    },
+    color_continuous_scale="Reds",
+    title="Estimated Tuberculosis Incidence (per 100,000 Population)",
+)
+
+fig_tb_map.update_layout(margin=dict(l=0, r=0, t=60, b=0))
+
+```
+
+### Column 2
 
 ```{python}
-avg_hspi
+fig_hist = px.histogram(
+    analysis,
+    x="tb_incidence",
+    nbins=30,
+    color_discrete_sequence=["firebrick"],
+    labels={"tb_incidence": "TB Incidence per 100k"},
+    title="Distribution of TB Incidence Across Countries",
+)
+
+fig_hist.update_layout(
+    xaxis_title="TB Incidence (per 100,000 population)",
+    yaxis_title="Number of Countries",
+)
 ```
+
+## Row 2
+
+### Column 1 {.tabset}
+#### Highest TB burden 
+
+```{python}
+highest_tb = (
+    analysis
+    .nlargest(15, "tb_incidence")
+    .sort_values("tb_incidence")
+)
+
+fig_high_tb = px.bar(
+    highest_tb,
+    x="tb_incidence",
+    y="country",
+    orientation="h",
+    color="tb_incidence",
+    color_continuous_scale="Reds",
+    labels={"tb_incidence":"TB Incidence per 100k"},
+    title="Countries with the Highest TB Burden"
+)
+
+fig_high_tb.update_layout(height=450)
+```
+
+#### Lowest TB burden 
+
+```{python}
+lowest_tb = analysis.nsmallest(15, "tb_incidence").sort_values(
+    "tb_incidence", ascending=False
+)
+
+fig_low_tb = px.bar(
+    lowest_tb,
+    x="tb_incidence",
+    y="country",
+    orientation="h",
+    color="tb_incidence",
+    color_continuous_scale="Greens",
+    labels={"tb_incidence": "TB Incidence per 100k"},
+    title="Countries with the Lowest TB Burden",
+)
+
+fig_low_tb.update_layout(height=450)
+```
+
+### Column 2
+::: {.callout-note}
+
+## Key Findings
+
+The global distribution of tuberculosis incidence is highly uneven.
+
+While many countries report relatively low TB incidence, a smaller group experiences disproportionately high burdens, highlighting persistent inequalities in infectious disease risk.
+
+These findings reinforce the need to consider disease burden alongside health-system preparedness when assessing countries' readiness to detect and respond to outbreaks.
 
 :::
 
-::: {.valuebox icon="activity" color="#E67E22" title="Average TB Incidence"}
+# Health Security Gap Analysis
+## Row 1
+### Column 1
+```{python}
+fig_quad = (
+    px.scatter(
+        analysis,
+        x="HSPI",
+        y="tb_incidence",
+        color="Quadrant",
+        size="health_expenditure",
+        hover_name="country",
+        hover_data={
+            "HSPI": ":.1f",
+            "tb_incidence": ":.1f",
+            "physicians": ":.2f",
+            "uhc": ":.1f",
+            "spi_overall": ":.1f",
+        },
+        color_discrete_map={
+            "Priority": "red",
+            "High Burden": "orange",
+            "Emerging Risk": "steelblue",
+            "Resilient": "green",
+        },
+        title="Health Security Preparedness vs TB Burden",
+    )
+    .add_vline(x=analysis["HSPI"].median(), line_dash="dash")
+    .add_hline(y=analysis["tb_incidence"].median(), line_dash="dash")
+    .update_layout(height=650)
+)
+
+fig_quad.show()
+```
+
+### Column 2
 
 ```{python}
-f"{avg_tb_incidence:.1f} per 100,000"
+corr = analysis[
+    [
+        "HSPI",
+        "tb_incidence",
+        "physicians",
+        "uhc",
+        "spi_overall",
+        "spi_pillar5",
+        "health_expenditure",
+    ]
+].corr(numeric_only=True)
+
+fig_corr = px.imshow(
+    corr,
+    text_auto=".2f",
+    color_continuous_scale="RdBu_r",
+    aspect="auto",
+    title="Correlation Between Preparedness Indicators",
+).update_layout(height=600)
+
+fig_corr
 ```
+
+## Row 2
+
+### Column 1
+
+```{python}
+fig_bubble = px.scatter(
+    analysis,
+    x="physicians",
+    y="tb_incidence",
+    size="health_expenditure",
+    color="HSPI",
+    hover_name="country",
+    hover_data={"HSPI": ":.1f", "spi_overall": ":.1f", "uhc": ":.1f"},
+    color_continuous_scale="Viridis",
+    title="Health Workforce Capacity and Disease Burden",
+).update_layout(
+    xaxis_title="Physicians per 1,000 Population",
+    yaxis_title="TB Incidence (per 100,000)",
+)
+
+fig_bubble
+```
+
+### Column 2
+
+::: {.callout-important}
+
+## Interpreting the Quadrants
+
+The scatter plot divides countries into four groups based on the median values of the Health Security Preparedness Index (HSPI) and TB incidence.
+
+**Priority:** Lower preparedness with higher TB burden. These countries may benefit most from investments in surveillance, health systems, and infectious disease control.
+
+**High Burden:** Higher preparedness but continued elevated TB incidence, suggesting that preparedness alone does not eliminate disease burden.
+
+**Emerging Risk:** Lower preparedness despite relatively lower TB burden. These countries may be vulnerable to future outbreaks if preparedness gaps are not addressed.
+
+**Resilient:** Higher preparedness and lower TB burden, representing countries with comparatively stronger readiness and lower infectious disease pressure.
 
 :::
 
-::: {.valuebox icon="exclamation-triangle-fill" color="#C0392B" title="Priority Countries"}
+# Policy Recommendations & Data
 
-```{python}
-priority_countries
-```
+## Row {height="40%"}
+### Column 1
+
+::: {.callout-note}
+
+## Policy Recommendations
+
+- Strengthen Surveillance Systems
+Invest in national statistical systems and digital health information infrastructure to improve early detection of infectious disease outbreaks.
+
+- Expand Health Workforce Capacity
+Increase investments in physician training, retention, and equitable distribution to strengthen frontline health services.
+
+- Sustain Universal Health Coverage
+Improve access to essential infectious disease services through continued investment in universal health coverage.
+
+- Increase Domestic Health Financing
+Countries with lower health expenditure generally demonstrated lower preparedness scores, underscoring the importance of sustained investment in health systems.
+
+- Prioritize High-Burden, Low-Preparedness Countries
+Countries identified in the **priority** quadrant should be prioritized for technical support, laboratory strengthening, surveillance capacity building, and international collaboration.
 
 :::
 
-## Row {height=75%}
+### Column 2
+::: {.callout-important}
+
+## Limitations
+
+- The HSPI is a composite indicator created for this analysis and does not replace established measures such as the Global Health Security Index.
+- Preparedness indicators were derived using the most recent available observations between 2020 and 2023 to account for reporting lags.
+- Tuberculosis incidence was used as a proxy indicator of infectious disease burden and does not represent all infectious diseases.
+- This analysis is descriptive and intended to support exploratory comparison rather than establish causal relationships.
+
+:::
+
+## Row {height="60%"}
+
+::: {.card title="Global Health Security Dataset"}
 
 ```{python}
-map_fig
+
+# Initialize interactive tables for HTML rendering
+init_notebook_mode(all_interactive=True)
+
+# Configure global/table options 
+opt.classes = "display nowrap"  # Clean DataTables styling
+opt.maxBytes = 0  # Allow rendering larger datasets without truncation warnings
+
+# Render the interactive Data Table
+show(
+    analysis,
+    buttons=["copy", "csv", "excel", "pdf"],
+    colReorder=True,
+    fixedHeader=True,
+    scrollY="300px",
+    keys=True,
+    lengthMenu=[10, 25, 50, 100],
+    pageLength=50,
+    paging=True,
+    dom="Bfrtip",  # B=Buttons, f=Filtering, r=Processing, t=Table, i=Info, p=Paging
+    showIndex=False,  
+)
 ```
+
