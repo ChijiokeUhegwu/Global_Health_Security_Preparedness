@@ -290,13 +290,9 @@ dict(
 
 ```{python}
 #| content: valuebox
-#| title: "Average TB Incidence (per 100k)"
+#| title: "Average TB per 100k"
 
-dict(
-    icon="activity",
-    color="#E67E22",
-    value=f"{float(avg_tb_incidence):.1f}"
-)
+dict(icon="activity", color="#E67E22", value=f"{float(avg_tb_incidence):.1f}")
 ```
 
 ```{python}
@@ -310,6 +306,33 @@ dict(
 )
 ```
 
+```{python}
+# Plot variables
+hover_variables = {
+    "HSPI": ":.1f",
+    "tb_incidence": ":.1f",
+    "physicians": ":.2f",
+    "uhc": ":.1f",
+    "Quadrant": True,
+}
+label_variables = {
+    "Quadrant": "Preparedness Status",
+    "tb_incidence": "TB Incidence per 100k",
+    "uhc": "UHC",
+    "physicians": "Physicians per 1000",
+    "country": "Country",
+    "health_expenditure": "Health expenditure (% GDP)",
+    "spi_overall": "SPI Overall",
+}
+
+map_variables = {
+    "Priority": "red",
+    "High Burden": "orange",
+    "Emerging Risk": "steelblue",
+    "Resilient": "green",
+}
+```
+
 ## Row {height=75%}
 
 ### Map Column {width="70%"}
@@ -321,28 +344,11 @@ map_fig = px.choropleth(
     locations="country",
     locationmode="country names",
     color="Quadrant",
-    color_discrete_map={
-        "Priority": "#B22222",
-        "Emerging Risk": "#FF7F00",
-        "High Burden": "#E6AB02",
-        "Resilient": "#2E8B57",
-    },
+    color_discrete_map=map_variables,
     hover_name="country",
-    hover_data={
-        "HSPI": ":.1f",
-        "tb_incidence": ":.1f",
-        "physicians": ":.2f",
-        "uhc": ":.1f",
-        "Quadrant": True,
-    },
-    labels={
-        "Quadrant": "Preparedness Status",
-        "tb_incidence": "TB Incidence per 100k",
-        "uhc": "UHC",
-        "physicians": "Physicians per 1000",
-        "country": "Country",
-    },
-    title="Global Health Security Preparedness Index (2023)",
+    hover_data=hover_variables,
+    labels=label_variables,
+    #title="Global Health Security Preparedness Index (2023)",
 )
 map_fig.update_layout(
     legend=dict(
@@ -356,6 +362,9 @@ map_fig.update_layout(
         entrywidthmode="pixels",
     ),
     margin=dict(l=0, r=0, t=60, b=0),
+    title=dict(
+        text="Global Health Security Preparedness Index (2023)", x=0.5, xanchor="center"
+    ),
 )
 ```
 
@@ -391,20 +400,8 @@ fig_top = px.bar(
     color="HSPI",
     color_continuous_scale="Greens",
     title="Top 15 Countries by HSPI",
-    hover_data={
-        "HSPI": ":.1f",
-        "tb_incidence": ":.1f",
-        "physicians": ":.2f",
-        "uhc": ":.1f",
-        "Quadrant": True,
-    },
-    labels={
-        "Quadrant": "Preparedness Status",
-        "tb_incidence": "TB Incidence per 100k",
-        "uhc": "UHC",
-        "physicians": "Physicians per 1000",
-        "country": "Country",
-    },
+    hover_data=hover_variables,
+    labels=label_variables,
 )
 
 fig_top.update_layout(height=450)
@@ -423,10 +420,11 @@ fig_bottom = px.bar(
     color="HSPI",
     color_continuous_scale="Reds",
     title="Lowest 15 Countries by HSPI",
+    hover_data=hover_variables,
+    labels=label_variables,
 )
 
 fig_bottom.update_layout(height=450)
-
 ```
 
 ## Row 2
@@ -440,14 +438,8 @@ fig_scatter = px.scatter(
     size="physicians",
     color="spi_overall",
     hover_name="country",
-    hover_data=["tb_incidence", "uhc"],
-    labels={
-        "health_expenditure": "Health expenditure (% GDP)",
-        "tb_incidence": "TB Incidence per 100k",
-        "uhc": "UHC",
-        "spi_overall": "SPI Overall",
-        "physicians": "Physicians per 1000",
-    },
+    hover_data=hover_variables,
+    labels=label_variables,
     title="Health Expenditure and National Preparedness",
 )
 
@@ -484,18 +476,13 @@ fig_tb_map = px.choropleth(
     locationmode="country names",
     color="tb_incidence",
     hover_name="country",
-    hover_data={
-        "tb_incidence": ":.1f",
-        "HSPI": ":.1f",
-        "physicians": ":.2f",
-        "uhc": ":.1f",
-    },
+    hover_data=hover_variables,
+    labels=label_variables,
     color_continuous_scale="Reds",
     title="Estimated Tuberculosis Incidence (per 100,000 Population)",
 )
 
 fig_tb_map.update_layout(margin=dict(l=0, r=0, t=60, b=0))
-
 ```
 
 ### Column 2
@@ -506,7 +493,8 @@ fig_hist = px.histogram(
     x="tb_incidence",
     nbins=30,
     color_discrete_sequence=["firebrick"],
-    labels={"tb_incidence": "TB Incidence per 100k"},
+    hover_data=hover_variables,
+    labels=label_variables,
     title="Distribution of TB Incidence Across Countries",
 )
 
@@ -535,7 +523,8 @@ fig_high_tb = px.bar(
     orientation="h",
     color="tb_incidence",
     color_continuous_scale="Reds",
-    labels={"tb_incidence":"TB Incidence per 100k"},
+    hover_data=hover_variables,
+    labels=label_variables,
     title="Countries with the Highest TB Burden"
 )
 
@@ -556,7 +545,8 @@ fig_low_tb = px.bar(
     orientation="h",
     color="tb_incidence",
     color_continuous_scale="Greens",
-    labels={"tb_incidence": "TB Incidence per 100k"},
+    hover_data=hover_variables,
+    labels=label_variables,
     title="Countries with the Lowest TB Burden",
 )
 
@@ -588,19 +578,9 @@ fig_quad = (
         color="Quadrant",
         size="health_expenditure",
         hover_name="country",
-        hover_data={
-            "HSPI": ":.1f",
-            "tb_incidence": ":.1f",
-            "physicians": ":.2f",
-            "uhc": ":.1f",
-            "spi_overall": ":.1f",
-        },
-        color_discrete_map={
-            "Priority": "red",
-            "High Burden": "orange",
-            "Emerging Risk": "steelblue",
-            "Resilient": "green",
-        },
+        hover_data=hover_variables,
+        labels=label_variables,
+        color_discrete_map=map_variables,
         title="Health Security Preparedness vs TB Burden",
     )
     .add_vline(x=analysis["HSPI"].median(), line_dash="dash")
@@ -626,15 +606,42 @@ corr = analysis[
     ]
 ].corr(numeric_only=True)
 
-fig_corr = px.imshow(
-    corr,
-    text_auto=".2f",
-    color_continuous_scale="RdBu_r",
-    aspect="auto",
-    title="Correlation Between Preparedness Indicators",
-).update_layout(height=600)
+# Prepare clean correlation matrix
+axis_labels = {
+    "HSPI": "HSPI",
+    "tb_incidence": "TB Incidence",
+    "physicians": "Physicians",
+    "uhc": "UHC",
+    "spi_overall": "SPI Overall",
+    "spi_pillar5": "SPI Pillar 5",
+    "health_expenditure": "Health Exp. (% GDP)",
+}
 
-fig_corr
+corr_clean = corr.rename(index=axis_labels, columns=axis_labels)
+
+# Build heatmap
+fig_corr = (
+    px.imshow(
+        corr_clean,
+        text_auto=".2f",
+        color_continuous_scale="RdBu_r",
+        aspect="auto",
+        title="Correlation Between Preparedness Indicators",
+        labels=dict(x="Indicator 1", y="Indicator 2", color="Correlation"),
+        zmin=-1,
+        zmax=1,
+    )
+    .update_traces(
+        hovertemplate="<b>%{y}</b> vs <b>%{x}</b><br>Correlation: %{z:.2f}<extra></extra>"
+    )
+    .update_layout(
+        height=600,
+        xaxis_tickangle=-45,  # Angle x-axis labels slightly so they never overlap
+        margin=dict(l=40, r=40, t=60, b=60),
+    )
+)
+
+fig_corr.show()
 ```
 
 ## Row 2
@@ -649,7 +656,8 @@ fig_bubble = px.scatter(
     size="health_expenditure",
     color="HSPI",
     hover_name="country",
-    hover_data={"HSPI": ":.1f", "spi_overall": ":.1f", "uhc": ":.1f"},
+    hover_data=hover_variables,
+    labels=label_variables,
     color_continuous_scale="Viridis",
     title="Health Workforce Capacity and Disease Burden",
 ).update_layout(
@@ -668,13 +676,13 @@ fig_bubble
 
 The scatter plot divides countries into four groups based on the median values of the Health Security Preparedness Index (HSPI) and TB incidence.
 
-**Priority:** Lower preparedness with higher TB burden. These countries may benefit most from investments in surveillance, health systems, and infectious disease control.
+- **Priority:** Lower preparedness with higher TB burden. These countries may benefit most from investments in surveillance, health systems, and infectious disease control.
 
-**High Burden:** Higher preparedness but continued elevated TB incidence, suggesting that preparedness alone does not eliminate disease burden.
+- **High Burden:** Higher preparedness but continued elevated TB incidence, suggesting that preparedness alone does not eliminate disease burden.
 
-**Emerging Risk:** Lower preparedness despite relatively lower TB burden. These countries may be vulnerable to future outbreaks if preparedness gaps are not addressed.
+- **Emerging Risk:** Lower preparedness despite relatively lower TB burden. These countries may be vulnerable to future outbreaks if preparedness gaps are not addressed.
 
-**Resilient:** Higher preparedness and lower TB burden, representing countries with comparatively stronger readiness and lower infectious disease pressure.
+- **Resilient:** Higher preparedness and lower TB burden, representing countries with comparatively stronger readiness and lower infectious disease pressure.
 
 :::
 
@@ -725,7 +733,7 @@ Countries identified in the **priority** quadrant should be prioritized for tech
 # Initialize interactive tables for HTML rendering
 init_notebook_mode(all_interactive=True)
 
-# Configure global/table options 
+# Configure global/table options
 opt.classes = "display nowrap"  # Clean DataTables styling
 opt.maxBytes = 0  # Allow rendering larger datasets without truncation warnings
 
@@ -741,7 +749,8 @@ show(
     pageLength=50,
     paging=True,
     dom="Bfrtip",  # B=Buttons, f=Filtering, r=Processing, t=Table, i=Info, p=Paging
-    showIndex=False,  
+    showIndex=False,
 )
 ```
 
+:::
