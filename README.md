@@ -1,12 +1,12 @@
 # Global Health Security Preparedness (GHSP) Dashboard
 
-![dashboard overview](GHSP Dashboard Overview.png)
+![dashboard overview](GHSP_Dashboard_Overview.png)
 
 An interactive Quarto dashboard exploring how national health-system capacity relates
 to infectious disease burden, using a composite **Health Security Preparedness Index
 (HSPI)** built from World Bank / Gapminder indicators.
 
-**Live dashboard:** `<https://chijiokeuhegwu.github.io/Global_Health_Security_Preparedness/>`
+**Live dashboard:** <https://chijiokeuhegwu.github.io/Global_Health_Security_Preparedness/>
 ---
 
 ## 1. Motivation
