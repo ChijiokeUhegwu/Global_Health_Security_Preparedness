@@ -1,19 +1,17 @@
 # Global Health Security Preparedness (GHSP) Dashboard
 
+![dashboard overview](GHSP Dashboard Overview.png)
+
 An interactive Quarto dashboard exploring how national health-system capacity relates
 to infectious disease burden, using a composite **Health Security Preparedness Index
 (HSPI)** built from World Bank / Gapminder indicators.
 
-Final project — *Python for Data Analysis*, GRAPH Courses, sponsored by **UNODA's
-Biological Weapons Convention (BWC) Programme**.
-
-**Live dashboard:** `<add your GitHub Pages URL here once deployed>`
-
+**Live dashboard:** `<https://chijiokeuhegwu.github.io/Global_Health_Security_Preparedness/>`
 ---
 
 ## 1. Motivation
 
-Biological risk isn't only about whether a disease is present in a country — it's about
+Biological risk isn't only about whether a disease is present in a country, it's about
 whether that country's health system can detect and respond to it. This project treats
 tuberculosis incidence as a proxy for infectious disease burden and asks: which countries
 combine **high disease burden with low preparedness**, and are therefore priorities for
@@ -46,13 +44,13 @@ Raw CSVs are stored under `data/` in Gapminder's native wide (year-as-column) fo
    - TB incidence (the outcome variable) is fixed at **2023** only, since it changes
      meaningfully year to year and mixing years would distort the burden comparison.
    - The five preparedness indicators use a **Most Recent Available Value (MRAV)**
-     approach: for each country, the latest non-missing value between **2020–2023** is
+     approach: for each country, the latest non-missing value between 2020–2023 is
      taken. This accounts for reporting lags in slower-moving structural indicators
      (e.g. SPI, physician density) without discarding countries that simply reported
      in an earlier year within the window.
 5. **Composite index (HSPI)** — z-score normalize physicians, UHC, SPI overall, SPI
    Pillar 5, and health expenditure; average the z-scores; rescale to 0–100.
-6. **Quadrant classification** — countries are split on the **median** HSPI and median
+6. **Quadrant classification** — countries are split on the median HSPI and median
    TB incidence into four groups: *Priority* (low HSPI, high TB), *High Burden* (high
    HSPI, high TB), *Emerging Risk* (low HSPI, low TB), *Resilient* (high HSPI, low TB).
 
@@ -69,8 +67,8 @@ Raw CSVs are stored under `data/` in Gapminder's native wide (year-as-column) fo
 │   ├── sh_xpd_chex_gd_zs.csv
 │   ├── analysis_full.csv        # generated: cleaned merged panel
 │   └── analysis_hspi.csv        # generated: panel + HSPI + quadrants
-├── ghsp_dashboard.qmd            # dashboard source
-├── _quarto.yml                   # project/render config
+├── index.qmd            # dashboard source
+├── index.html            # dashboard view link
 ├── requirements.txt
 └── README.md
 ```
@@ -95,12 +93,12 @@ itables
 ```
 
 You'll also need [Quarto](https://quarto.org/docs/get-started/) installed (CLI, not just
-the Python package) — version used for this project: `<fill in your `quarto --version`>`.
+the Python package).
 
 ### Run locally
 
 ```bash
-quarto preview ghsp_dashboard.qmd
+quarto preview index.qmd
 ```
 
 This renders the dashboard and opens it in a browser with live reload.
@@ -108,38 +106,26 @@ This renders the dashboard and opens it in a browser with live reload.
 ### Render a static build
 
 ```bash
-quarto render ghsp_dashboard.qmd
+quarto render index.qmd
 ```
 
-Output is written to `_site/` (or as configured in `_quarto.yml`).
+Output is written to `index.html` which can be deployed to a GitHub page.
 
-### Deploy to GitHub Pages
-
-```bash
-quarto publish gh-pages ghsp_dashboard.qmd
-```
-
-This builds and pushes to the `gh-pages` branch directly. Alternatively, commit the
-rendered `_site/` output to a `docs/` folder on `main` and point GitHub Pages at that
-folder in the repo settings — useful if you want CI (e.g. GitHub Actions) to render on
-every push instead of rendering locally before each publish.
 
 ## 6. Limitations
 
-- HSPI is a composite index created for this analysis; it is **not** a validated,
+- HSPI is a composite index created for this analysis; it is not a validated,
   peer-reviewed measure and should not be treated as equivalent to established indices
   such as the Global Health Security (GHS) Index.
 - Preparedness indicators use the most recent available value in a 2020–2023 window,
   which mixes reporting years across countries.
 - TB incidence is used as a single proxy for infectious disease burden; it does not
   capture the full range of biological threats relevant to health security.
-- The analysis is descriptive and exploratory — it identifies association, not
-  causation, between preparedness and disease burden.
+- The analysis is descriptive and intended to support exploratory comparison rather than establish causal relationships.
 
 ## 7. Attribution
 
-This project was developed as a final submission for the GRAPH Courses Python for
-Data Analysis course, sponsored by UNODA's Biological Weapons Convention Programme.
+This project was developed as a final submission for the Global Research and Analyses for Public Health (GRAPH) Python for Data Analysis course, where I was sponsored by UNODA's Biological Weapons Convention Programme. 
 Data: World Bank Statistical Performance Indicators and World Development Indicators,
 via Gapminder. 
 
