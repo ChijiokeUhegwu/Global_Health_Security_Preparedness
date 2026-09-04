@@ -3,7 +3,14 @@ title: "GHSP Dashboard"
 format:
   dashboard:
     orientation: rows
+    nav-buttons:
+      - icon: github
+        href: https://github.com/chijiokeuhegwu
+      - icon: linkedin
+        href: https://www.linkedin.com/in/chijiokeuhegwu
     theme: cosmo
+execute: 
+  echo: false
 ---
 
 ```{python}
@@ -20,8 +27,6 @@ import numpy as np
 
 from functools import reduce
 from scipy.stats import zscore
-
-import plotly.express as px
 
 # import data
 physicians_per_1000 = pd.read_csv("data/sh_med_phys_zs.csv")
@@ -515,10 +520,7 @@ The gap in preparedness between countries is large: `{python} top_hspi_country` 
 `{python} f"{bottom_hspi_value:.0f}"` for `{python} bottom_hspi_country` — a difference of 
 `{python} f"{hspi_gap:.0f}"` points on the same scale.
 
-Countries that spend more on health as a share of their economy also tend to score higher 
-on preparedness (a correlation of `{python} f"{corr_health_hspi:.2f}"`), suggesting that 
-sustained investment in health systems and infrastructure — not wealth alone — plays a meaningful role in how ready a country is 
-to detect and respond to disease outbreaks. On the other hand, countries with lower HSPI scores highlight potential gaps in preparedness that may affect the timely detection and response to infectious disease outbreaks.
+Health expenditure is associated with higher HSPI scores (a correlation of `{python} f"{corr_health_hspi:.2f}"`), though this is expected in part because health expenditure is itself one of the five components used to construct HSPI. This association should therefore be read as descriptive rather than as evidence that spending independently drives preparedness. Countries with lower HSPI scores highlight potential gaps in preparedness that may affect the timely detection and response to infectious disease outbreaks..
  
 :::
 
@@ -630,7 +632,7 @@ The global distribution of tuberculosis incidence is highly uneven: about `{pyth
 `{python} f"{top_value:.0f}"` per 100,000, alongside Mongolia, South Africa, DR Congo, and Gabon.
 
 This means the global median TB incidence (`{python} f"{median_tb:.0f}"` per 100,000) understates the risk 
-concentrated in a small number of high-burden countries, highlighting persistent inequalities in infectious disease risk. These findings reinforce the need to consider disease burden alongside health-system preparedness when assessing countries' readiness to detect and respond to outbreaks (see Health Security Gap Analysis).
+concentrated in a small number of high-burden countries. This shows that infectious disease risk is spread very unequally across the world. Because of this, disease burden should be considered together with health-system preparedness when assessing how ready countries are to detect and respond to outbreaks (see Health Security Gap Analysis).
 
 :::
 
@@ -786,7 +788,7 @@ show that strong preparedness doesn't automatically eliminate disease burden. Wh
 
 - Sustain Universal Health Coverage: Access to essential infectious disease services should be improved through continued investment in universal health coverage.
 
-- Increase Domestic Health Financing: Countries with lower health expenditure generally demonstrated lower preparedness scores, underscoring the importance of sustained investment in health systems.
+- Increase Domestic Health Financing: Countries with lower health expenditure generally demonstrated lower preparedness scores which suggests that sustained investment in health systems is a reasonable priority area.
 
 - Prioritize High-Burden, Low-Preparedness Countries: Countries identified in the **priority** quadrant should be prioritized for technical support, laboratory strengthening, surveillance capacity building, and international collaboration.
 
